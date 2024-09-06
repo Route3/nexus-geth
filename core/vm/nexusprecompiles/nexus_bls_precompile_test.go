@@ -63,10 +63,41 @@ func Test_NexusBlsPrecompile(t *testing.T) {
 		pubKeys[i] = validator.PublicKey().ToBigInt()
 	}
 
+	t.Run("too many public keys", func(t *testing.T) {
+		validators, err := bn256.GeneratePrivateKeys(maxPublicKeys + 1)
+		require.NoError(t, err)
+
+		pubKeys := make([][4]*big.Int, len(validators))
+		signatures := make([]*bn256.Signature, len(validators))
+
+		for i, validator := range validators {
+			signatures[i], err = validator.Sign(message, domain)
+			require.NoError(t, err)
+
+			pubKeys[i] = validator.PublicKey().ToBigInt()
+		}
+
+		signature, bmp := aggregateSignatures(signatures, 0, 5, 4, 3, 6, 2)
+		bytes := encodeMulti(message, signature, pubKeys, bmp)
+
+		_, err = b.Run(bytes)
+		require.ErrorContains(t, err, "too many public keys")
+	})
+
+	t.Run("invalid signature size", func(t *testing.T) {
+		_, bmp := aggregateSignatures(signatures, 0, 5, 4, 3, 6, 2)
+		signature := make([]byte, maxSignatureSize+1)
+		bytes := encodeMulti(message, signature, pubKeys, bmp)
+
+		_, err := b.Run(bytes)
+		require.ErrorContains(t, err, "invalid signature size")
+	})
+
 	t.Run("correct multi 1", func(t *testing.T) {
 		signature, bmp := aggregateSignatures(signatures, 0, 5, 4, 3, 6, 2)
+		bytes := encodeMulti(message, signature, pubKeys, bmp)
 
-		out, err := b.Run(encodeMulti(message, signature, pubKeys, bmp))
+		out, err := b.Run(bytes)
 		require.NoError(t, err)
 		require.Equal(t, true32Byte, out)
 	})
@@ -97,8 +128,9 @@ func Test_NexusBlsPrecompile(t *testing.T) {
 
 	t.Run("wrong multi 1", func(t *testing.T) {
 		signature, bmp := aggregateSignatures(signatures, 7, 6, 5, 1, 3, 2)
+		bytes := encodeMulti(append([]byte{1}, message...), signature, pubKeys, bmp)
 
-		out, err := b.Run(encodeMulti(append([]byte{1}, message...), signature, pubKeys, bmp))
+		out, err := b.Run(bytes)
 		require.NoError(t, err)
 		require.Equal(t, false32Byte, out)
 	})
@@ -115,8 +147,9 @@ func Test_NexusBlsPrecompile(t *testing.T) {
 
 	t.Run("multi quorum not reached", func(t *testing.T) {
 		signature, bmp := aggregateSignatures(signatures, 7, 6, 5, 1, 3)
+		bytes := encodeMulti(message, signature, pubKeys, bmp)
 
-		_, err := b.Run(encodeMulti(message, signature, pubKeys, bmp))
+		_, err := b.Run(bytes)
 		require.ErrorIs(t, err, errNexusBlsQuorumNotReached)
 	})
 }

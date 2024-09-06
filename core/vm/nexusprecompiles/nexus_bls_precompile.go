@@ -13,6 +13,8 @@ import (
 
 const (
 	domainApexBridgeEVMString = "DOMAIN_APEX_BRIDGE_EVM"
+	maxPublicKeys             = 100
+	maxSignatureSize          = 128
 )
 
 var (
@@ -76,6 +78,14 @@ func (c *nexusBlsPrecompile) Run(input []byte) ([]byte, error) {
 	inputObj, ok := abi.ConvertType(dt[0], new(nexusBlsPrecompileTuple)).(*nexusBlsPrecompileTuple)
 	if !ok {
 		return nil, errNexusBlsInvalidInput
+	}
+
+	if len(inputObj.Signature) > maxSignatureSize {
+		return nil, fmt.Errorf("%w: invalid signature size - %d", errNexusBlsInvalidInput, len(inputObj.Signature))
+	}
+
+	if len(inputObj.PublicKeys) > maxPublicKeys {
+		return nil, fmt.Errorf("%w: too many public keys - %d", errNexusBlsInvalidInput, len(inputObj.PublicKeys))
 	}
 
 	var (
