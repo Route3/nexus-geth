@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/Ethernal-Tech/bn256"
+	bn256 "github.com/Ethernal-Tech/bn256"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -62,7 +62,7 @@ type nexusBlsPrecompile struct {
 }
 
 func (c *nexusBlsPrecompile) RequiredGas(input []byte) uint64 {
-	return 50000
+	return 150_000
 }
 
 func (c *nexusBlsPrecompile) Run(input []byte) ([]byte, error) {

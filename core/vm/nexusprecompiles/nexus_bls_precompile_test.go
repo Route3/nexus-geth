@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/Ethernal-Tech/bn256"
+	bn256 "github.com/Ethernal-Tech/bn256"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
