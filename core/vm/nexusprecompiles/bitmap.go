@@ -6,6 +6,10 @@ import "math/big"
 type Bitmap []byte
 
 func NewBitmap(bigInt *big.Int) Bitmap {
+	if bigInt == nil {
+		return Bitmap{}
+	}
+
 	return Bitmap(bigInt.Bytes())
 }
 

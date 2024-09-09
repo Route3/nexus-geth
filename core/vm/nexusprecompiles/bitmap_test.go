@@ -12,7 +12,7 @@ func TestBitmap_Set(t *testing.T) {
 	data := []int{8, 15, 0, 7, 31, 60, 112, 7, 16, 241, 189, 60, 0, 19, 14, 25}
 	unique := map[int]struct{}{}
 
-	b := Bitmap{}
+	b := NewBitmap(nil)
 
 	for _, v := range data {
 		unique[v] = struct{}{}
