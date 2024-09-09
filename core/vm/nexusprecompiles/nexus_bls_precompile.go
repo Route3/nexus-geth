@@ -88,10 +88,8 @@ func (c *nexusBlsPrecompile) Run(input []byte) ([]byte, error) {
 		return nil, fmt.Errorf("%w: too many public keys - %d", errNexusBlsInvalidInput, len(inputObj.PublicKeys))
 	}
 
-	var (
-		publicKeysSerialized [][4]*big.Int
-		bitmap               = NewBitmap(inputObj.Bitmap)
-	)
+	publicKeysSerialized := make([][4]*big.Int, 0, len(inputObj.PublicKeys))
+	bitmap := NewBitmap(inputObj.Bitmap)
 
 	for i, x := range inputObj.PublicKeys {
 		if bitmap.IsSet(uint64(i)) {
