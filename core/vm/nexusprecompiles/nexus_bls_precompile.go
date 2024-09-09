@@ -88,18 +88,25 @@ func (c *nexusBlsPrecompile) Run(input []byte) ([]byte, error) {
 		return nil, fmt.Errorf("%w: too many public keys - %d", errNexusBlsInvalidInput, len(inputObj.PublicKeys))
 	}
 
-	publicKeysSerialized := make([][4]*big.Int, 0, len(inputObj.PublicKeys))
+	publicKeys := make([]*bn256.PublicKey, 0, len(inputObj.PublicKeys))
 	bitmap := NewBitmap(inputObj.Bitmap)
 
-	for i, x := range inputObj.PublicKeys {
-		if bitmap.IsSet(uint64(i)) {
-			publicKeysSerialized = append(publicKeysSerialized, x)
+	for i, pkSerialized := range inputObj.PublicKeys {
+		if !bitmap.IsSet(uint64(i)) {
+			continue
 		}
+
+		pubKey, err := bn256.UnmarshalPublicKeyFromBigInt(pkSerialized)
+		if err != nil {
+			return nil, fmt.Errorf("%w: public key - %w", errNexusBlsInvalidInput, err)
+		}
+
+		publicKeys = append(publicKeys, pubKey)
 	}
 
 	quorumCnt := (len(inputObj.PublicKeys)*2)/3 + 1
 	// ensure that the number of serialized public keys meets the required quorum count
-	if len(publicKeysSerialized) < quorumCnt {
+	if len(publicKeys) < quorumCnt {
 		return nil, errNexusBlsQuorumNotReached
 	}
 
@@ -108,18 +115,7 @@ func (c *nexusBlsPrecompile) Run(input []byte) ([]byte, error) {
 		return nil, fmt.Errorf("%w: signature - %w", errNexusBlsInvalidInput, err)
 	}
 
-	blsPubKeys := make([]*bn256.PublicKey, len(publicKeysSerialized))
-
-	for i, pk := range publicKeysSerialized {
-		blsPubKey, err := bn256.UnmarshalPublicKeyFromBigInt(pk)
-		if err != nil {
-			return nil, fmt.Errorf("%w: public key - %w", errNexusBlsInvalidInput, err)
-		}
-
-		blsPubKeys[i] = blsPubKey
-	}
-
-	if signature.VerifyAggregated(blsPubKeys, inputObj.Hash[:], c.domain) {
+	if signature.VerifyAggregated(publicKeys, inputObj.Hash[:], c.domain) {
 		return true32Byte, nil
 	}
 
