@@ -304,25 +304,20 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *triedb.Database, g
 		// Ensure the stored genesis matches with the given one.
 		hash := genesis.ToBlock().Hash()
 
-		fmt.Println(">>>>>genesis", genesis)
 		if hash != stored {
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
 		block, err := genesis.Commit(db, triedb)
-		fmt.Println("2>>>>>genesis", genesis)
 		if err != nil {
 			return genesis.Config, hash, err
 		}
 		return genesis.Config, block.Hash(), nil
 	}
 
-	fmt.Println("3>>>>>genesis", genesis)
-
 	// Check whether the genesis block is already written.
 	if genesis != nil {
 		applyOverrides(genesis.Config)
 		hash := genesis.ToBlock().Hash()
-		fmt.Println("4>>>>>genesis", genesis)
 		if hash != stored {
 			return genesis.Config, hash, &GenesisMismatchError{stored, hash}
 		}
@@ -330,22 +325,17 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *triedb.Database, g
 	// Get the existing chain configuration.
 	newcfg := genesis.configOrDefault(stored)
 
-	fmt.Println("5>>>>>genesis", genesis)
-	fmt.Println("5>>>>>genesis.newcfg", newcfg)
-
 	applyOverrides(newcfg)
 	if err := newcfg.CheckConfigForkOrder(); err != nil {
 		return newcfg, common.Hash{}, err
 	}
 	storedcfg := rawdb.ReadChainConfig(db, stored)
-	fmt.Println("5>>>>>genesis.storedcfg", storedcfg)
 	if storedcfg == nil {
 		log.Warn("Found genesis block without chain config")
 		rawdb.WriteChainConfig(db, stored, newcfg)
 		return newcfg, stored, nil
 	}
 	storedData, _ := json.Marshal(storedcfg)
-	fmt.Println("5.5>>>>>genesis.storedcfg", storedcfg)
 	// Special case: if a private network is being used (no genesis and also no
 	// mainnet hash in the database), we must not apply the `configOrDefault`
 	// chain config as that would be AllProtocolChanges (applying any new fork
@@ -362,8 +352,6 @@ func SetupGenesisBlockWithOverride(db ethdb.Database, triedb *triedb.Database, g
 		return newcfg, stored, errors.New("missing head header")
 	}
 	compatErr := storedcfg.CheckCompatible(newcfg, head.Number.Uint64(), head.Time)
-	fmt.Println("6>>>>>genesis.storedcfg", storedcfg)
-	fmt.Println("7>>>>>genesis.newcfg", newcfg)
 
 	if compatErr != nil && ((head.Number.Uint64() != 0 && compatErr.RewindToBlock != 0) || (head.Time != 0 && compatErr.RewindToTime != 0)) {
 		return newcfg, stored, compatErr
