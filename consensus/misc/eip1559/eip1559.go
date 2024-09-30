@@ -19,6 +19,8 @@ package eip1559
 import (
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/consensus/misc"
@@ -54,5 +56,47 @@ func VerifyEIP1559Header(config *params.ChainConfig, parent, header *types.Heade
 // CalcBaseFee calculates the basefee of the header.
 func CalcBaseFee(config *params.ChainConfig, parent *types.Header) *big.Int {
 
-	return big.NewInt(0)
+	// Nexus: If the current block is where the baseFee==0 needs to happen
+	if config.IsNexusBaseFeeSetToZero(parent.Number) {
+		return new(big.Int).SetUint64(0)
+	} else {
+
+		// If the current block is the first EIP-1559 block, return the InitialBaseFee.
+		if !config.IsLondon(parent.Number) {
+			return new(big.Int).SetUint64(params.InitialBaseFee)
+		}
+
+		parentGasTarget := parent.GasLimit / config.ElasticityMultiplier()
+		// If the parent gasUsed is the same as the target, the baseFee remains unchanged.
+		if parent.GasUsed == parentGasTarget {
+			return new(big.Int).Set(parent.BaseFee)
+		}
+
+		var (
+			num   = new(big.Int)
+			denom = new(big.Int)
+		)
+
+		if parent.GasUsed > parentGasTarget {
+			// If the parent block used more gas than its target, the baseFee should increase.
+			// max(1, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
+			num.SetUint64(parent.GasUsed - parentGasTarget)
+			num.Mul(num, parent.BaseFee)
+			num.Div(num, denom.SetUint64(parentGasTarget))
+			num.Div(num, denom.SetUint64(config.BaseFeeChangeDenominator()))
+			baseFeeDelta := math.BigMax(num, common.Big1)
+
+			return num.Add(parent.BaseFee, baseFeeDelta)
+		} else {
+			// Otherwise if the parent block used less gas than its target, the baseFee should decrease.
+			// max(0, parentBaseFee * gasUsedDelta / parentGasTarget / baseFeeChangeDenominator)
+			num.SetUint64(parentGasTarget - parent.GasUsed)
+			num.Mul(num, parent.BaseFee)
+			num.Div(num, denom.SetUint64(parentGasTarget))
+			num.Div(num, denom.SetUint64(config.BaseFeeChangeDenominator()))
+			baseFee := num.Sub(parent.BaseFee, num)
+
+			return math.BigMax(baseFee, common.Big0)
+		}
+	}
 }

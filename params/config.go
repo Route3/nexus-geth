@@ -319,14 +319,12 @@ type ChainConfig struct {
 	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	GrayGlacierBlock    *big.Int `json:"grayGlacierBlock,omitempty"`    // Eip-5133 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	MergeNetsplitBlock  *big.Int `json:"mergeNetsplitBlock,omitempty"`  // Virtual fork after The Merge to use as a network splitter
-
 	// Fork scheduling was switched from blocks to timestamps here
 
 	ShanghaiTime *uint64 `json:"shanghaiTime,omitempty"` // Shanghai switch time (nil = no fork, 0 = already on shanghai)
 	CancunTime   *uint64 `json:"cancunTime,omitempty"`   // Cancun switch time (nil = no fork, 0 = already on cancun)
 	PragueTime   *uint64 `json:"pragueTime,omitempty"`   // Prague switch time (nil = no fork, 0 = already on prague)
 	VerkleTime   *uint64 `json:"verkleTime,omitempty"`   // Verkle switch time (nil = no fork, 0 = already on verkle)
-
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
@@ -343,6 +341,8 @@ type ChainConfig struct {
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
 	Clique *CliqueConfig `json:"clique,omitempty"`
+
+	NexusBlockWhereBaseFeeGoesToZero *big.Int `json:"nexusBlockWhereBaseFeeGoesToZero"` // Nexus Changing London Base Fee to 0 (nil = no fork, 0 = already on london)
 }
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
@@ -534,6 +534,12 @@ func (c *ChainConfig) IsTerminalPoWBlock(parentTotalDiff *big.Int, totalDiff *bi
 		return false
 	}
 	return parentTotalDiff.Cmp(c.TerminalTotalDifficulty) < 0 && totalDiff.Cmp(c.TerminalTotalDifficulty) >= 0
+}
+
+// IsNexusBaseFeeSetToZero returns whether num is either equal to the IsNexusBaseFeeSetToZeroBlock fork block or greater.
+func (c *ChainConfig) IsNexusBaseFeeSetToZero(num *big.Int) bool {
+	fmt.Println("isBlockForked params", c.NexusBlockWhereBaseFeeGoesToZero, num)
+	return isBlockForked(c.NexusBlockWhereBaseFeeGoesToZero, num)
 }
 
 // IsShanghai returns whether time is either equal to the Shanghai fork time or greater.

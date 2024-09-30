@@ -77,6 +77,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		BaseFee       *math.HexOrDecimal256                      `json:"baseFeePerGas"`
 		ExcessBlobGas *math.HexOrDecimal64                       `json:"excessBlobGas"`
 		BlobGasUsed   *math.HexOrDecimal64                       `json:"blobGasUsed"`
+		NexusBlockWhereBaseFeeGoesToZero *math.HexOrDecimal64 		`json:"nexusBlockWhereBaseFeeGoesToZero"`
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -84,6 +85,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	if dec.Config != nil {
 		g.Config = dec.Config
+		g.Config.NexusBlockWhereBaseFeeGoesToZero = g.NexusBlockWhereBaseFeeGoesToZero
 	}
 	if dec.Nonce != nil {
 		g.Nonce = uint64(*dec.Nonce)
@@ -132,6 +134,9 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	if dec.BlobGasUsed != nil {
 		g.BlobGasUsed = (*uint64)(dec.BlobGasUsed)
+	}
+	if dec.NexusBlockWhereBaseFeeGoesToZero != nil {
+		g.NexusBlockWhereBaseFeeGoesToZero = new(big.Int).SetUint64((uint64(*dec.NexusBlockWhereBaseFeeGoesToZero)))
 	}
 	return nil
 }

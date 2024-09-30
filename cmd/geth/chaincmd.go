@@ -186,6 +186,17 @@ It's deprecated, please use "geth db import" instead.
 This command dumps out the state for a given block (or latest, if none provided).
 `,
 	}
+
+	patchNexusLondonCommand = &cli.Command{
+		Action:    patchNexusLondonBaseFeeAction,
+		Name:      "patch-nexus-london",
+		Usage:     "Patches London fork's base fee calc. to 0.",
+		ArgsUsage: "<new-genesis-file>]",
+		Flags:     flags.Merge([]cli.Flag{}, utils.DatabaseFlags),
+		Description: `
+This commands sets the 'nexusBlockWhereBaseFeeGoesToZero' field of config in the DB.
+`,
+	}
 )
 
 // initGenesis will initialise the given JSON format genesis file and writes it as
@@ -600,4 +611,57 @@ func dump(ctx *cli.Context) error {
 func hashish(x string) bool {
 	_, err := strconv.Atoi(x)
 	return err != nil
+}
+
+// patchNexusLondonBaseFeeAction will initialise a block number where London's Fork
+// base fee calculation will default to zero. It expects that the passed new genesis
+// file contains `nexusBlockWhereBaseFeeGoesToZero`:big.Int field
+func patchNexusLondonBaseFeeAction(ctx *cli.Context) error {
+
+	fmt.Println("patchNexusLondonBaseFeeAction called")
+	if ctx.Args().Len() != 1 {
+		utils.Fatalf("need genesis.json file as the only argument")
+	}
+	genesisPath := ctx.Args().First()
+	if len(genesisPath) == 0 {
+		utils.Fatalf("invalid path to genesis file")
+	}
+	file, err := os.Open(genesisPath)
+	if err != nil {
+		utils.Fatalf("Failed to read genesis file: %v", err)
+	}
+	defer file.Close()
+
+	fmt.Println("file:", file)
+
+	genesis := new(core.Genesis)
+	if err := json.NewDecoder(file).Decode(genesis); err != nil {
+		utils.Fatalf("invalid genesis file: %v", err)
+	}
+	// Open and initialise both full and light databases
+	fmt.Println("genesis decoded", genesis)
+	fmt.Println("genesis.NexusBlockWhereBaseFeeGoesToZero", genesis.NexusBlockWhereBaseFeeGoesToZero)
+
+	stack, _ := makeConfigNode(ctx)
+	defer stack.Close()
+
+	for _, name := range []string{"chaindata", "lightchaindata"} {
+		chaindb, err := stack.OpenDatabaseWithFreezer(name, 0, 0, ctx.String(utils.AncientFlag.Name), "", false)
+		if err != nil {
+			utils.Fatalf("Failed to open database: %v", err)
+		}
+		defer chaindb.Close()
+
+		triedb := utils.MakeTrieDatabase(ctx, chaindb, ctx.Bool(utils.CachePreimagesFlag.Name), false, genesis.IsVerkle())
+		defer triedb.Close()
+
+		stored := rawdb.ReadCanonicalHash(chaindb, 0)
+
+		chainConfig, _ := core.LoadChainConfig(chaindb, genesis)
+		chainConfig.NexusBlockWhereBaseFeeGoesToZero = genesis.NexusBlockWhereBaseFeeGoesToZero
+
+		rawdb.WriteChainConfig(chaindb, stored, chainConfig)
+		log.Info("Successfully wrote genesis state", "database", name)
+	}
+	return nil
 }

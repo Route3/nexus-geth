@@ -217,6 +217,7 @@ func init() {
 	app.Commands = []*cli.Command{
 		// See chaincmd.go:
 		initCommand,
+		patchNexusLondonCommand,
 		importCommand,
 		exportCommand,
 		importHistoryCommand,
