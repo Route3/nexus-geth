@@ -25,6 +25,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/core/vm/nexusprecompiles"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/holiman/uint256"
@@ -41,6 +42,11 @@ type (
 )
 
 func (evm *EVM) precompile(addr common.Address) (PrecompiledContract, bool) {
+	// custom nexus precompile
+	if addr == nexusprecompiles.NexusBLSPrecompileAddr {
+		return nexusprecompiles.NexusBlsPrecompile, true
+	}
+
 	p, ok := evm.precompiles[addr]
 	return p, ok
 }
