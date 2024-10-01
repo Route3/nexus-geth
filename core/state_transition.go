@@ -460,9 +460,10 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		gasRefund = st.refundGas(params.RefundQuotientEIP3529)
 	}
 	effectiveTip := msg.GasPrice
-	if rules.IsLondon {
-		effectiveTip = cmath.BigMin(msg.GasTipCap, new(big.Int).Sub(msg.GasFeeCap, st.evm.Context.BaseFee))
-	}
+	//Note: Disables London's Base Fee 'burn' by giving the 'miner' complete reward
+	//if rules.IsLondon {
+	//	effectiveTip = cmath.BigMin(msg.GasTipCap, new(big.Int).Sub(msg.GasFeeCap, st.evm.Context.BaseFee))
+	//}
 	effectiveTipU256, _ := uint256.FromBig(effectiveTip)
 
 	if st.evm.Config.NoBaseFee && msg.GasFeeCap.Sign() == 0 && msg.GasTipCap.Sign() == 0 {
