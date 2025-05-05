@@ -57,11 +57,3 @@ jobs:
           files: ./build/bin/nexus-geth
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./build/bin/geth
-          asset_name: nexus-geth
-          asset_content_type: application/octet-stream
