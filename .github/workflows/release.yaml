@@ -1,0 +1,66 @@
+---
+name: Build and Release
+on:  # yamllint disable-line rule:truthy
+  push:
+    branches-ignore:
+      - '**'
+    tags:
+      - 'v*.*.*'
+      # to be used by fork patch-releases ^^
+      - 'v*.*.*-*'
+
+jobs:
+  build-and-release:
+    name: Nexus Geth
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3.3.0
+        with:
+          go-version: 1.23.x
+
+      - name: Log in to GitHub Docker Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_NAME=ghcr.io/route3/nexus-geth:${{ github.ref_name }}
+          echo "Building Docker image $IMAGE_NAME"
+          docker build -t $IMAGE_NAME .
+          docker push $IMAGE_NAME
+
+      - name: Build binary
+        run: make geth
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Changes in this release:
+            - Automatic release created by GitHub Actions.
+            - Built amd64/linux docker image
+            
+            [ghcr.io/Route3/nexus-geth](https://ghcr.io/route3/nexus-geth:${{ github.ref_name}})
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./build/bin/geth
+          asset_name: nexus-geth
+          asset_content_type: application/octet-stream
