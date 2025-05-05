@@ -38,7 +38,7 @@ jobs:
           docker push $IMAGE_NAME
 
       - name: Build binary
-        run: make geth
+        run: make nexus-geth
 
       - name: Create Release
         id: create_release
@@ -51,9 +51,10 @@ jobs:
             - Automatic release created by GitHub Actions.
             - Built amd64/linux docker image
             
-            [ghcr.io/Route3/nexus-geth](https://ghcr.io/route3/nexus-geth:${{ github.ref_name}})
+            [ghcr.io/Route3/nexus-geth:${{ github.ref_name }}](https://ghcr.io/route3/nexus-geth:${{ github.ref_name}})
           draft: false
           prerelease: false
+          files: ./build/bin/nexus-geth
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

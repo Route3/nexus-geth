@@ -9,10 +9,11 @@ GO ?= latest
 GORUN = go run
 
 #? geth: Build geth.
-geth:
+nexus-geth:
 	$(GORUN) build/ci.go install ./cmd/geth
 	@echo "Done building."
 	@echo "Run \"$(GOBIN)/geth\" to launch geth."
+	mv $(GOBIN)/geth $(GOBIN)/nexus-geth
 
 #? all: Build all packages and executables.
 all:
